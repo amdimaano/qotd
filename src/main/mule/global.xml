@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:jms="http://www.mulesoft.org/schema/mule/jms" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd 
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd 
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+	<http:request-config name="qotd_live"
+		doc:name="HTTP Request configuration" doc:id="8fb1e3a6-e821-4ad0-8bac-9ab537456e6c">
+		<http:request-connection host="${quotes_service.host}" />
+	</http:request-config>
+	<http:listener-config name="HTTP_Listener_config"
+		doc:name="HTTP Listener config" doc:id="4eec5130-8498-4c0f-b072-57b2dad97b4d"
+		basePath="/qotd">
+		<http:listener-connection host="0.0.0.0"
+			port="8081" />
+	</http:listener-config>
+	<http:request-config name="yandex_translate"
+		doc:name="HTTP Request configuration" doc:id="c35863aa-e805-409b-8cfb-0bcb4c0bdb4a">
+		<http:request-connection host="${yandex.host}"
+			protocol="HTTPS" />
+	</http:request-config>
+	<http:request-config name="local"
+		doc:name="HTTP Request configuration" doc:id="27a5c65e-c13b-45c5-89da-791703be6436"
+		basePath="/qotd">
+		<http:request-connection host="localhost"
+			port="8081" />
+	</http:request-config>
+	<http:request-config name="mock_quote"
+		doc:name="HTTP Request configuration" doc:id="d6d1f0b2-bf6b-413b-a1f5-02cae0ca6dca">
+		<http:request-connection host="${mock_quotes_service.host}" />
+	</http:request-config>
+	<jms:config name="JMS_Config" doc:name="JMS Config"
+		doc:id="ff210ca8-c5f2-4244-b22a-b2942111540e">
+		<jms:active-mq-connection username="${jms.user}"
+			password="${jms.password}" clientId="${jms.client_id}">
+			<jms:factory-configuration brokerUrl="${jms.broker_url}" />
+		</jms:active-mq-connection>
+	</jms:config>
+	<configuration-properties doc:name="Configuration properties" doc:id="5431807a-299a-4c7b-b427-5b73673a96c1" file="config.yaml" />
+	<configuration doc:name="Configuration" doc:id="c8d5fadd-7ee2-43c4-bf89-d4173cfb5aef" defaultErrorHandler-ref="globalError_Handler" />
+	<http:request-config name="HTTP_down_quotes_service" doc:name="HTTP Request configuration" doc:id="8126a536-8c95-47d5-948a-ea68b4f901de" >
+		<http:request-connection host="testdown" />
+	</http:request-config>
+	<file:config name="base_directory" doc:name="File Config" doc:id="f6cf8194-e840-454c-9bb9-75f4dd59b5fa" >
+		<file:connection workingDir="${file.base_dir}" />
+	</file:config>
+	<file:config name="default_directory" doc:name="File Config" doc:id="5bae9db2-ecae-4554-9ebf-8651dcfb4d9b" >
+		<file:connection workingDir="${file.base_dir}${file.default_dir}" />
+	</file:config>
+	<error-handler name="globalError_Handler" doc:id="cd925ffe-eb44-4426-b552-8c002c16b2a2" >
+		<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="806432c3-bad8-4b80-a1d4-6f052be46ecc" >
+			<logger level="INFO" doc:name="LOG START Global Error Handler" doc:id="a0ef7c46-a043-4de1-867c-f3f719d89414" message="Handling error.."/>
+			<ee:transform doc:name="Set Custom Error Message" doc:id="a08ea630-db80-4893-9745-4b71edbff4e0" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": payload.message default error.description,
+	"description" : error.detailedDescription
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<logger level="INFO" doc:name="LOG END Global Error Handler" doc:id="5d8b821c-2f2a-4d4d-9edf-b9e1431046c6" message="Error Handling Done!"/>
+		</on-error-continue>
+	</error-handler>
+
+</mule>

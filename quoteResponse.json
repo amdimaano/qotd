@@ -1,0 +1,24 @@
+{
+    "success": {
+        "total": 1
+    },
+    "contents": {
+        "quotes": [
+            {
+                "quote": "The tennis ball doesn't know how old I am. The ball doesn't know if I'm a man or a woman or if I come from a communist country or not. Sport has always broken down these barriers.",
+                "author": "Martina Navratilova",
+                "length": "179",
+                "tags": [
+                    "barriers",
+                    "inspire",
+                    "sports"
+                ],
+                "category": "inspire",
+                "title": "Inspiring Quote of the day",
+                "date": "2019-01-09",
+                "id": null
+            }
+        ],
+        "copyright": "2017-19 theysaidso.com"
+    }
+}

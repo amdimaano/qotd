@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:munit="http://www.mulesoft.org/schema/mule/munit"
+	xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<munit:config name="quote-of-the-day-jms-listener-test-suite.xml" />
+	<munit:test name="quote-of-the-day-jms-listener-test-suite-quote-of-the-day:\process-published-compressed-translations:flowTest" description="Test" doc:id="9185f7e2-9f6e-45be-88f5-93368e036323" >
+		<munit:behavior >
+			<set-payload value='#[%dw 2.0
+output application/json
+---
+{
+   
+   "fileName":"Q0TD_20190121.txt",
+   "translations":[
+  {
+     "message":"testmessageone",
+     "indices":[
+        4,
+        12,
+        16
+     ]
+  },
+  {
+     "message":"testmessagetwo",
+     "indices":[
+            4,
+            12
+         ]
+      }
+   ],
+   "txnId": "12345"
+  
+   }]' doc:name="Set Mock Data" doc:id="6757c32d-9f5d-4190-b5a7-7b4b01dbe38f" />
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to quote-of-the-day:\process-published-compressed-translations:flow" doc:id="83de9162-d21f-4897-b368-262a5138c03e" name="quote-of-the-day:\process-published-compressed-translations:flow"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Verify Logger Is Called N Times" doc:id="03cc580d-083a-48c3-9278-66f7cf60d9f0" processor="mule:logger" times="2">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute attributeName="doc:name" whereValue="Log Decompressed Translation" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+
+</mule>

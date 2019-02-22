@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:java="http://www.mulesoft.org/schema/mule/java" xmlns:jms="http://www.mulesoft.org/schema/mule/jms"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:batch="http://www.mulesoft.org/schema/mule/batch" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
+http://www.mulesoft.org/schema/mule/java http://www.mulesoft.org/schema/mule/java/current/mule-java.xsd">
+	<flow name="quote-of-the-day:\process-quote:flow" doc:id="5bd2f6f8-b41c-4cb3-80dc-e85f21fc6fdd" >
+		<http:listener doc:name="HTTP GET Quote Translations REST API" doc:id="45b06af0-eeb2-4d1e-9822-bb76fdf4dea6" config-ref="HTTP_Listener_config" path="/quote"/>
+		<ee:transform doc:name="Declare Variables" doc:id="e2c87af7-ff1a-4480-8e4e-96b2a25fc9f9">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="translations" ><![CDATA[%dw 2.0
+output application/json
+---
+[]]]></ee:set-variable>
+				<ee:set-variable variableName="quote" ><![CDATA[%dw 2.0
+output application/json
+---
+{}]]></ee:set-variable>
+				<ee:set-variable variableName="fileName" ><![CDATA[%dw 2.0
+output application/java
+---
+'QOTD_' ++ now() as String{format: "MMDDYYYY"} ++ '.txt']]></ee:set-variable>
+				<ee:set-variable variableName="txnId" ><![CDATA[%dw 2.0
+output application/json
+---
+uuid()]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="quote-of-the-day:\get-quote-of-the-day:flow" doc:id="e4004f91-8099-4091-913a-4de18d176d91" name="quote-of-the-day:\get-quote-of-the-day:flow" target="quote" targetValue="#[payload.contents.quotes[0]]"/>
+		<flow-ref doc:name="quote-of-the-day:\write-original-quote-to-file:subflow" doc:id="5be41ca4-136a-4f01-ab77-a496ed05af9a" name="quote-of-the-day:\write-original-quote-to-file:subflow"/>
+		<flow-ref doc:name="quote-of-the-day:\get-compressed-translations:flow" doc:id="e2d872b6-7493-42a2-a147-050f68a86454" name="quote-of-the-day:\get-compressed-translations:sub-flow"/>
+		<flow-ref doc:name="quote-of-the-day:\publish-translations:subflow" doc:id="9b0931b9-b500-475a-9051-d7e40b695359" name="quote-of-the-day:\publish-translations:subflow"/>
+		<set-payload value="Quote of the day processing successful!" doc:name="Set Successful Quote Processing Message" doc:id="62851035-94ad-4203-abd2-1ab2323b63dd" />
+	</flow>
+	<flow name="quote-of-the-day:\get-quote-of-the-day:flow" doc:id="f8ffc1bd-a8f1-47cc-8d87-7b6dfcc08c4d" >
+		<logger level="INFO" doc:name="Log Start Get Quote Of The Day" doc:id="d95c2eff-2e07-4ebe-b4bd-ad2709cfb282" message="#[%dw 2.0
+output text/plain
+---
+
+'txnId: ' ++ vars.txnId ++ ' '++ 'Retrieving quote of the day..']"/>
+		<http:request method="GET" doc:name="HTTP GET Quote Of The Day" doc:id="c23d4fb4-1e72-4595-b89d-65a58e4f681c" config-ref="mock_quote" path="/qod.json"/>
+		<logger level="INFO" doc:name="Log End Get Quote Of The Day" doc:id="c4ea1b73-6396-4322-8bb9-284a83b67e8d" message="#[%dw 2.0
+output text/plain
+---
+
+'txnId: ' ++ vars.txnId ++ ' '++ 'Retrieving quote of the day done!']"/>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="qotdServiceConnectivityErrorHandler" doc:id="f5f4db5f-e37b-4b8e-ac66-a406799833bc" type="HTTP:CONNECTIVITY, HTTP:NOT_FOUND, HTTP:TIMEOUT">
+				<ee:transform doc:name="Set Cusom Error Message" doc:id="8b66f983-a5f0-4ac7-813d-57911afb6094" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": "Cannot connect to quotes service! Try again later!"	
+}
+]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-propagate>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="qotdTooManyRequestsErrorHandler" doc:id="55ebec10-6a8f-4646-b782-9eb6d7da404d" type="HTTP:TOO_MANY_REQUESTS">
+				<ee:transform doc:name="Set Cusom Error Message" doc:id="5cd0f12c-37fe-41e8-b3c3-3868647990c1" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message" : "Quote retrieval Limit per hour reached (10 quotes/hour)! Please Try again later."
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+	<sub-flow name="quote-of-the-day:\write-original-quote-to-file:subflow" doc:id="bd541d9f-9924-44d9-ba8e-13a9fbf6dc43" >
+		<logger level="INFO" doc:name="Log Start Write Original Quote To File" doc:id="5f0c573c-1763-44b6-8bac-89052c28f2ff" message="#[%dw 2.0
+output text/plain
+---
+
+'txnId: ' ++ vars.txnId ++ ' '++ 'Writing quote to file.']"/>
+		<file:write doc:name="FILE  /Users/arvindimaano/Documents/qotd" doc:id="3ca895a0-2f2c-4c57-b788-a8334dafc641" path="#[vars.fileName]" config-ref="default_directory">
+			<file:content><![CDATA[#[%dw 2.0
+output text/plain
+---
+
+vars.quote.quote ++ ' ' ++ vars.quote.author ++ ' ' ++ vars.quote.date ++ '\n']]]></file:content>
+		</file:write>
+		<logger level="INFO" doc:name="Log End Write Original Quote To File" doc:id="c3930684-f167-42d1-aa0c-2075922f721f" message="#[%dw 2.0
+output text/plain
+---
+
+'txnId: ' ++ vars.txnId ++ ' '++ 'Write to file done!']"/>
+	</sub-flow>
+	<sub-flow name="quote-of-the-day:\get-compressed-translations:sub-flow" doc:id="24e5aabf-39c2-4dca-a816-cb5e9b3831eb" >
+		<logger level="INFO" doc:name="Log Start Get Translations" doc:id="bbc15a0f-9fbf-433a-9417-daa466fa86f1" message="#[%dw 2.0
+output text/plain
+---
+
+'txnId: ' ++ vars.txnId ++ ' '++ &quot;Getting translations for: &quot; ++ vars.quote.quote]" />
+		<foreach doc:name="For Each Language" doc:id="3ef71259-cba3-4ad0-9097-ddd19ecfabf4" collection="${lang.list}">
+			<flow-ref doc:name="quote-of-the-day:\get-compressed-translation:subflow" doc:id="ef4b05f0-0e12-4906-b5fe-139431f02c29" name="quote-of-the-day:\get-compressed-translation:flow" targetValue="#[payload]"/>
+			<set-variable value="#[vars.translations + payload]" doc:name="Add Result To Translations Array Variable" doc:id="1de217e0-6cb3-4c49-bf4e-c2c0bca3c856" variableName="translations" />
+		</foreach>
+		<logger level="INFO" doc:name="Log End Get Translations" doc:id="7450d877-5eb6-4122-b7ff-da42eb9f5e27" message="#[%dw 2.0
+output text/plain
+---
+
+'txnId: ' ++ vars.txnId ++ ' '++ 'Getting Translations Done!']" />
+	</sub-flow>
+	<flow name="quote-of-the-day:\get-compressed-translation:flow" doc:id="848302af-8096-45b9-a057-c4df476e79ff" >
+		<logger level="INFO" doc:name="Log Start Get Translation" doc:id="1889f3c3-ac4c-48fd-b300-070b5068a0d4" message="#[%dw 2.0
+output text/plain
+---
+
+'txnId: ' ++ vars.txnId ++ ' '++ &quot;Getting translation for &quot; ++ payload]"/>
+		<http:request method="GET" doc:name="HTTP GET Yandex Translation REST API" doc:id="1a5fd530-4eed-4827-b0d8-8074cfa0f4aa" config-ref="yandex_translate" path="#['/api/v1.5/tr.json/translate']">
+			<http:query-params><![CDATA[#[output application/java
+---
+{
+	"key" : p('yandex.apiKey'),
+	"lang" : payload,
+	"text" : vars.quote.quote
+}]]]></http:query-params>
+		</http:request>
+		<ee:transform doc:name="Yandex Translation to Compressed Translation" doc:id="82c07e67-35b9-4bb5-9ce8-c2ab7b552e14" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: payload.text[0] replace " " with "",
+	indices: payload.text[0] ++ " " find " "
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+			</ee:variables>
+		</ee:transform>
+		<set-payload value="#[payload]" doc:name="Set Translations Api Result To Payload" doc:id="d0e1438d-edaf-4ef6-ab43-8fcca960db57" />
+		<logger level="INFO" doc:name="Log End Get Translation" doc:id="c1f91a71-6f2a-4a75-9824-79f1ca3bd6a9" message="#[%dw 2.0
+output text/plain
+---
+
+'txnId: ' ++ vars.txnId ++ ' '++ &quot;Translation done!&quot;]"/>
+		<error-handler>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="translatorApiConnectivityErrorHandler" doc:id="e28f7497-07b9-4fe7-9f63-f14d029835ab" type="HTTP:CONNECTIVITY, HTTP:NOT_FOUND">
+				<ee:transform doc:name="Set Cusom Error Message" doc:id="fda4ca50-5093-4ce6-94d8-5c36c446867a">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message" : "Translator service cannot be reached! Please try again later."
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-propagate>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="translatorApiUnauthorizedErrorHandler" doc:id="6668090c-e6b4-4528-86c3-bdf6d9725e6a" type="HTTP:FORBIDDEN, HTTP:UNAUTHORIZED">
+				<ee:transform doc:name="Set Cusom Error Message" doc:id="e43de730-9b72-4677-b3d4-58412ecc94c1">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": "Translation request unauthorized. Please check if apikey used is still valid."
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+
+	<flow name="quote-of-the-day:\publish-translations:subflow" doc:id="529d75a8-e53b-4380-9f54-1e453a6058c1">
+		<logger level="INFO" doc:name="Log Start Publish Translations" doc:id="16c4201c-8605-42d3-a896-dbee5b5d7752" message="#[%dw 2.0
+output text/plain
+---
+
+'txnId: ' ++ vars.txnId ++ ' '++ &quot;Publishing Translations...&quot;]" />
+		<jms:publish doc:name="JMS Publish qotd" doc:id="23502a1a-4916-477b-b145-5f22e9cd73ea" config-ref="JMS_Config" destination="qotd" destinationType="TOPIC" sendCorrelationId="ALWAYS">
+			<jms:message>
+				<jms:body><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+	"txnId" : vars.txnId,
+	"fileName" : vars.fileName,
+	"translations" : vars.translations
+}]]]></jms:body>
+			</jms:message>
+		</jms:publish>
+		<logger level="INFO" doc:name="Log End Publish Translations" doc:id="22520446-e5dc-459e-ae4b-e43747dfe79b" message="#[%dw 2.0
+output text/plain
+---
+
+'txnId: ' ++ vars.txnId ++ ' '++ 'Publish done!']" />
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="jmsConnectivityErrorHandler" doc:id="3df46e8d-3ffa-41e8-9d61-9212265cf65d" type="JMS:CONNECTIVITY, JMS:DESTINATION_NOT_FOUND">
+				<ee:transform doc:name="Set Cusom Error Message" doc:id="9ac9fb99-f439-4965-8133-3b094f2faae8" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": "JMS Connection failed!"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+</mule>

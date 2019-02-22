@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:jms="http://www.mulesoft.org/schema/mule/jms"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd 
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+	<flow
+		name="quote-of-the-day:\process-published-compressed-translations:flow"
+		doc:id="dcb0ef13-c5bf-441a-bbad-4866d22c91cf">
+		<jms:listener doc:name="JMS LISTEN qotd"
+			doc:id="bde17504-6576-40ab-b9d0-bb4bd6a99101" config-ref="JMS_Config"
+			ackMode="AUTO" destination="qotd" numberOfConsumers="1">
+			<jms:consumer-type>
+				<jms:topic-consumer durable="true" shared="true" />
+			</jms:consumer-type>
+		</jms:listener>
+		<ee:transform doc:name="Set Transaction Id" doc:id="737e5cdd-37be-4a0a-b016-8937cd69b372" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="txnId" ><![CDATA[%dw 2.0
+output application/json
+---
+payload.txnId]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<logger level="INFO"
+			doc:name="Log Start Process Published Compressed Translations"
+			doc:id="3f1f4226-e1ad-424a-af72-d5bdb92e02fc" message="#[%dw 2.0
+output text/plain
+---
+
+'txnId: ' ++ vars.txnId ++ ' '++  'Processing Compressed Translations...']" />
+		<flow-ref
+			doc:name="quote-of-the-day:\write-compressed-translations-to-file:subflow"
+			doc:id="19790548-babf-4f44-82f7-5025597ed517"
+			name="quote-of-the-day:\write-compressed-translations-to-file:subflow" />
+		<flow-ref doc:name="quote-of-the-day:\decompress-translations:subflow"
+			doc:id="c10b33c4-5892-4092-85f7-3276a1ebc717" name="quote-of-the-day:\decompress-translations:subflow" />
+		<logger level="INFO"
+			doc:name="Log End Process Published Compressed Translations" doc:id="7426cf3e-3285-42ba-b697-5d1f1be4595c"
+			message="#[%dw 2.0
+output text/plain
+---
+
+'txnId: ' ++ vars.txnId ++ ' '++ 'Processing Compressed Translations Done!']" />
+		<error-handler>
+			<on-error-propagate enableNotifications="true"
+				logException="true" doc:name="jmsConnectivityErrorHandler" doc:id="37a52032-7cc3-4713-bc2e-0d682ac7a5d0"
+				type="FILE:CONNECTIVITY">
+				<ee:transform doc:name="Set Cusom Error Message"
+					doc:id="ebbf30d7-4c21-4429-9097-50cb692ef8b8">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message" : "File to be appended not found!"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+	<sub-flow
+		name="quote-of-the-day:\write-compressed-translations-to-file:subflow"
+		doc:id="650f758b-639e-4b4d-a9ed-87fb6d41d9e5">
+		<logger level="INFO" doc:name="Log Start Write Compressed Translations To File"
+			doc:id="3c941807-27c1-40b8-a5ab-8bc64bbe8301" message="#[%dw 2.0
+output text/plain
+---
+
+'txnId: ' ++ vars.txnId ++ ' '++ 'Writing translations to file.']" />
+		<set-variable value="#[payload.fileName]" doc:name="Set fileName"
+			doc:id="dfe45193-e21e-491a-be05-affaf0892ea6" variableName="fileName" />
+		<foreach doc:name="For Each Compressed Translation" doc:id="5157295c-7bf9-471f-8d83-3d49b7320a93"
+			collection="payload.translations">
+			<file:write doc:name="FILE  /Users/arvindimaano/Documents/qotd
+"
+				doc:id="ef0170e8-9796-4234-a1d4-9f4313eb1ae3" path="#[vars.fileName]"
+				mode="APPEND" config-ref="default_directory">
+				<file:content><![CDATA[#[%dw 2.0
+output text/plain
+---
+
+payload.message ++ ' ' ++ now() as Number ++ '\n']]]></file:content>
+			</file:write>
+		</foreach>
+		<logger level="INFO" doc:name="Log End Write Compressed Translations To File"
+			doc:id="dc1cd15b-224f-4d20-b0b3-8c064122e897" message="#[%dw 2.0
+output text/plain
+---
+
+'txnId: ' ++ vars.txnId ++ ' '++ 'Writing translations to file done!']" />
+	</sub-flow>
+
+	<sub-flow name="quote-of-the-day:\decompress-translations:subflow"
+		doc:id="c75b3cd7-0fe7-42d9-b4cb-54d1a72283ee">
+		<logger level="INFO" doc:name="Log Start Decompress Translations"
+			doc:id="c21b5ffd-85d9-4566-835e-9ceeb1bb4d93" message="#[%dw 2.0
+output text/plain
+---
+
+'txnId: ' ++ vars.txnId ++ ' '++ 'Decompressing translations..']" />
+		<flow-ref doc:name="quote-of-the-day:\decompress-translation:subflow" doc:id="907b5255-1cd2-4120-a58e-183c4c7c9aa0"
+			name="quote-of-the-day:\decompress-translation:subflow" />
+		<logger level="INFO" doc:name="Log End Decompress Translations"
+			doc:id="3084e083-3088-495e-987b-8c7e2a30f34f" message="#[%dw 2.0
+output text/plain
+---
+
+'txnId: ' ++ vars.txnId ++ ' '++ 'Decompression done!']" />
+	</sub-flow>
+	<sub-flow name="quote-of-the-day:\decompress-translation:subflow"
+		doc:id="933fae99-8562-4df1-b5b4-22da1d143b6d">
+		<foreach doc:name="For Each Compressed Translation" doc:id="1756ea0f-f32e-4a9a-997f-c125f45c9fed"
+			collection="#[payload.translations]">
+			<ee:transform doc:name="Declare Variables"
+				doc:id="cff80e92-7956-425d-925f-c395f4fc0098">
+				<ee:message>
+					<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+payload]]></ee:set-payload>
+				</ee:message>
+				<ee:variables>
+					<ee:set-variable variableName="message"><![CDATA[%dw 2.0
+output application/java
+---
+payload.message]]></ee:set-variable>
+					<ee:set-variable variableName="decompressedTranslations" ><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+			<ee:transform doc:name="Process Translation Decompression"
+				doc:id="a280bb89-26a8-4b3b-93a3-a484fea6fe1a">
+				<ee:message>
+					<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+var text = payload.message
+fun startIndex(indices, index) = if(index == 0) 0 else indices[index - 1] + 1
+
+var decompressed = trim(((payload.indices map(space, index) -> {
+	"word" : text[(startIndex(payload.indices, index)) - index to (space - index - 1)]
+}) reduce (val, acc = []) -> acc + (val.word ++ " ")) reduce ($$ ++ $))
+
+---
+if(decompressed == null) text else decompressed
+	
+
+]]></ee:set-payload>
+				</ee:message>
+				<ee:variables>
+					<ee:set-variable variableName="message"><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+			<logger level="INFO" doc:name="Log Decompressed Translation"
+				doc:id="d6a42a56-1164-4aaf-9288-cf5e4fe9e137" message="#[%dw 2.0
+output text/plain
+---
+'txnId: ' ++ vars.txnId ++ ' '++ payload]" />
+		</foreach>
+	</sub-flow>
+
+</mule>

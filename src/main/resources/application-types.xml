@@ -1,0 +1,194 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<types:mule xmlns:types="http://www.mulesoft.org/schema/mule/types">
+  <types:catalog>
+    <types:type name="language" format="java">
+      <types:shape format="raml"><![CDATA[#%RAML 1.0 DataType
+type: string]]></types:shape>
+    </types:type>
+    <types:type name="test" format="java">
+      <types:shape format="raml"><![CDATA[#%RAML 1.0 DataType
+type: string]]></types:shape>
+    </types:type>
+    <types:type name="translateRequestBody" format="json">
+      <types:shape format="weave" example="examples/translateRequestBody.json"><![CDATA[%dw 2.0
+type translateRequestBody = {|
+  text: String, 
+  lang: String, 
+  key: String
+|} {"MetadataFormat": "json",
+"example": "{\"text\":\"Sample quote.\",\"lang\":\"en-ru\",\"key\":\"trnsl.1.1.20190110T065757Z.258e08c7d791dcb7.f854b0f100adf761df0116eb2db86069cd5106b6\"}"}
+
+]]></types:shape>
+    </types:type>
+    <types:type name="translation" format="json">
+      <types:shape format="weave" example="examples/translation.json"><![CDATA[%dw 2.0
+type translation = {|
+  code: Number {"typeId": "int"}, 
+  lang: String, 
+  text: Array<String>
+|} {"MetadataFormat": "json",
+"example": "{\"code\":200,\"lang\":\"en-ru\",\"text\":[\"\u041F\u0440\u0438\u043C\u0435\u0440\u043D\u0430\u044F \u0446\u0438\u0442\u0430\u0442\u0430.\"]}"}
+
+]]></types:shape>
+    </types:type>
+    <types:type name="languages" format="json">
+      <types:shape format="weave" example="examples/languages.json"><![CDATA[%dw 2.0
+type languages = Array<String> {"MetadataFormat": "json",
+"example": "[\"en-ru\",\"en-pl\"]"}
+
+]]></types:shape>
+    </types:type>
+    <types:type name="translations" format="json">
+      <types:shape format="weave" example="examples/translations-1.json"><![CDATA[%dw 2.0
+type translations = {|
+  results: Array<{|
+    message: String, 
+    indices: Array<Number {"typeId": "int"}>
+  |}>
+|} {"MetadataFormat": "json",
+"example": "{\"results\":[{\"message\":\"test messsage\",\"indices\":[3,5,11]},{\"message\":\"test messsage\",\"indices\":[3,5,11]}]}"}
+
+]]></types:shape>
+    </types:type>
+    <types:type name="qotdResponseElement" format="json">
+      <types:shape format="weave" example="examples/qotdResponseElement.json"><![CDATA[%dw 2.0
+type qotdResponseElement = {|
+  message: String, 
+  indices: Array<Number {"typeId": "int"}>
+|} {"MetadataFormat": "json",
+"example": "{\"message\":\"test messsage\",\"indices\":[3,5,11]}"}
+
+]]></types:shape>
+    </types:type>
+    <types:type name="simple" format="java">
+      <types:shape format="raml"><![CDATA[#%RAML 1.0 DataType
+type: string]]></types:shape>
+    </types:type>
+    <types:type name="quote" format="json">
+      <types:shape format="weave" example="examples/quote-2.json"><![CDATA[%dw 2.0
+type quote = {|
+  quote: String, 
+  author: String, 
+  length: String, 
+  tags: Array<String>, 
+  category: String, 
+  title: String, 
+  date: String, 
+  id: Null
+|} {"MetadataFormat": "json",
+"example": "{\"quote\":\"The tennis ball doesn't know how old I am. The ball doesn't know if I'm a man or a woman or if I come from a communist country or not. Sport has always broken down these barriers.\",\"author\":\"Martina Navratilova\",\"length\":\"179\",\"tags\":[\"barriers\",\"inspire\",\"sports\"],\"category\":\"inspire\",\"title\":\"Inspiring Quote of the day\",\"date\":\"2019-01-09\",\"id\":null}"}
+
+]]></types:shape>
+    </types:type>
+    <types:type name="quotesResponse" format="json">
+      <types:shape format="weave" example="examples/quoteResponse.json"><![CDATA[%dw 2.0
+type quotesResponse = {|
+  success: {| total: Number {"typeId": "int"} |}, 
+  contents: {|
+    quotes: Array<{|
+      quote: String, 
+      author: String, 
+      length: String, 
+      tags: Array<String>, 
+      category: String, 
+      title: String, 
+      date: String, 
+      id: Null
+    |}>, 
+    copyright: String
+  |}
+|} {"MetadataFormat": "json",
+"example": "{\"success\":{\"total\":1},\"contents\":{\"quotes\":[{\"quote\":\"The tennis ball doesn't know how old I am. The ball doesn't know if I'm a man or a woman or if I come from a communist country or not. Sport has always broken down these barriers.\",\"author\":\"Martina Navratilova\",\"length\":\"179\",\"tags\":[\"barriers\",\"inspire\",\"sports\"],\"category\":\"inspire\",\"title\":\"Inspiring Quote of the day\",\"date\":\"2019-01-09\",\"id\":null}],\"copyright\":\"2017-19 theysaidso.com\"}}"}
+
+]]></types:shape>
+    </types:type>
+  </types:catalog>
+  <types:enrichment select="#1a5fd530-4eed-4827-b0d8-8074cfa0f4aa">
+    <types:processor-declaration>
+      <types:output-event>
+        <types:message>
+          <types:payload type="translation"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#c23d4fb4-1e72-4595-b89d-65a58e4f681c">
+    <types:processor-declaration>
+      <types:output-event>
+        <types:message>
+          <types:payload type="quotesResponse"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#68815585-47da-47cb-b580-2acde80279e7">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:payload type="qotdResponseElement"/>
+        </types:message>
+      </types:input-event>
+    </types:processor-declaration>
+    <types:operation-declaration>
+      <types:inputs>
+        <types:parameter name="content" type="simple"/>
+      </types:inputs>
+    </types:operation-declaration>
+  </types:enrichment>
+  <types:enrichment select="#e2c87af7-ff1a-4480-8e4e-96b2a25fc9f9">
+    <types:processor-declaration>
+      <types:output-event>
+        <types:variables>
+          <types:variable name="quote" type="quote"/>
+        </types:variables>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#82c07e67-35b9-4bb5-9ce8-c2ab7b552e14">
+    <types:processor-declaration>
+      <types:output-event>
+        <types:message>
+          <types:payload type="qotdResponseElement"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#f6e04433-88de-473e-bf3b-550a6e8a4cad"/>
+  <types:enrichment select="#f314de36-f908-4bb9-97b8-3d3af2ca331e">
+    <types:processor-declaration>
+      <types:output-event>
+        <types:message>
+          <types:payload type="translations"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#ef4b05f0-0e12-4906-b5fe-139431f02c29">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:payload type="qotdResponseElement"/>
+        </types:message>
+      </types:input-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#3ef71259-cba3-4ad0-9097-ddd19ecfabf4">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:payload type="languages"/>
+        </types:message>
+      </types:input-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#4da3c4fb-6ea0-4e6b-8cae-4267de5cf2f9">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:payload type="translations"/>
+        </types:message>
+      </types:input-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#0568f1db-6eeb-4cda-9194-ec84b7d64a39"/>
+</types:mule>

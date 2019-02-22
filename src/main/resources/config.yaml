@@ -1,0 +1,21 @@
+quotes_service:
+  host: quotes.rest
+  path: qod.json
+mock_quotes_service:
+  host: qotd-pggq.us-e2.cloudhub.io
+  path: qod
+yandex:
+  host: translate.yandex.net
+  apiKey: trnsl.1.1.20190110T065757Z.258e08c7d791dcb7.f854b0f100adf761df0116eb2db86069cd5106b6
+jms: 
+  user: admin
+  password: admin
+  client_id: test_client
+  broker_url: tcp://localhost:61616
+file:
+  base_dir: /Users/arvindimaano/Documents/
+  default_dir: qotd
+lang:
+   list: "[\"en-ru\", \"en-pl\", \"en-hu\", \"en-ja\", \"en-tl\", \"en-it\"]" 
+ 
+  
