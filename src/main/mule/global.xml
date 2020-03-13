@@ -70,5 +70,29 @@ output application/json
 			<logger level="INFO" doc:name="LOG END Global Error Handler" doc:id="5d8b821c-2f2a-4d4d-9edf-b9e1431046c6" message="Error Handling Done!"/>
 		</on-error-continue>
 	</error-handler>
+	<flow name="globalFlow" doc:id="12a8b901-8778-4baf-9330-eff010a38c6a" >
+		<ee:transform doc:name="Transform Message" doc:id="7181c02e-db97-472d-9ba2-05f95cee8e30" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+
+var obj = {
+  "compressIndex": [
+    12,
+    21,
+    24,
+    33
+  ],
+  "compressedText": "Excellentiamprospersinabsentiaexcusat."
+}
+---
+//obj.compressIndex map(value, index) -> {
+//	"string": obj.compressedText[0 to value]
+//}
+
+hello]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
 
 </mule>
